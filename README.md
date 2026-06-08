@@ -1,3 +1,5 @@
+[English](./README_en.md) | 简体中文
+
 # 💼 职场跳槽计算器 (Job-Hop Calculator)
 
 这是一个专为职场人打造的**跳槽性价比分析与城市生活成本对比工具**。
