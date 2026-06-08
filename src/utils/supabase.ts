@@ -31,6 +31,9 @@ export const defaultCurrentInputs: CalculatorInputs = {
   slackTime: 2,
   specialTaxDeduction: 1500,
   careerGrowthRating: 3,
+  pensionRate: 0.08,
+  medicalRate: 0.02,
+  unemploymentRate: 0.005,
 };
 
 export const defaultTargetInputs: CalculatorInputs = {
@@ -49,6 +52,9 @@ export const defaultTargetInputs: CalculatorInputs = {
   slackTime: 1,
   specialTaxDeduction: 1500,
   careerGrowthRating: 4,
+  pensionRate: 0.08,
+  medicalRate: 0.02,
+  unemploymentRate: 0.003,
 };
 
 /**
@@ -59,8 +65,8 @@ export function getLocalInputs(): { current: CalculatorInputs; target: Calculato
     const cur = localStorage.getItem(STORAGE_KEYS.CURRENT_INPUTS);
     const tar = localStorage.getItem(STORAGE_KEYS.TARGET_INPUTS);
     return {
-      current: cur ? JSON.parse(cur) : defaultCurrentInputs,
-      target: tar ? JSON.parse(tar) : defaultTargetInputs,
+      current: cur ? { ...defaultCurrentInputs, ...JSON.parse(cur) } : defaultCurrentInputs,
+      target: tar ? { ...defaultTargetInputs, ...JSON.parse(tar) } : defaultTargetInputs,
     };
   } catch (e) {
     return { current: defaultCurrentInputs, target: defaultTargetInputs };

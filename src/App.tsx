@@ -39,6 +39,13 @@ export default function App() {
   // Navigation active tab
   const [activeTab, setActiveTab] = useState("dashboard");
   
+  // Advanced settings panel states
+  const [showCurrentAdvanced, setShowCurrentAdvanced] = useState(false);
+  const [showTargetAdvanced, setShowTargetAdvanced] = useState(false);
+  
+  // Active city for Donut chart in control panel
+  const [activeDonutCity, setActiveDonutCity] = useState<"current" | "target">("target");
+  
   // Dropdowns for city selection
   const [showCurrentCityDropdown, setShowCurrentCityDropdown] = useState(false);
   const [showTargetCityDropdown, setShowTargetCityDropdown] = useState(false);
@@ -154,7 +161,6 @@ export default function App() {
     setToast({ message, type });
   };
 
-  // --- Helper to change cities ---
   const selectCurrentCity = (cityId: string) => {
     const selected = cities.find((c) => c.id === cityId);
     if (selected) {
@@ -166,6 +172,10 @@ export default function App() {
         customTransport: selected.defaultDailyTransport,
         customUtilities: selected.defaultMonthlyUtilities,
         customLeisure: selected.defaultMonthlyLeisure,
+        pensionRate: selected.pensionRate,
+        medicalRate: selected.medicalRate,
+        unemploymentRate: selected.unemploymentRate,
+        housingFundRate: selected.housingFundRateDefault,
       });
     }
     setShowCurrentCityDropdown(false);
@@ -182,6 +192,10 @@ export default function App() {
         customTransport: selected.defaultDailyTransport,
         customUtilities: selected.defaultMonthlyUtilities,
         customLeisure: selected.defaultMonthlyLeisure,
+        pensionRate: selected.pensionRate,
+        medicalRate: selected.medicalRate,
+        unemploymentRate: selected.unemploymentRate,
+        housingFundRate: selected.housingFundRateDefault,
       });
     }
     setShowTargetCityDropdown(false);
@@ -199,7 +213,7 @@ export default function App() {
     return { label: "不建议跳槽，得不偿失 ⚠️", color: "#ef4444" };
   };
 
-  // Donut segment calculations
+  // Donut segment calculations with Leader Callout Lines
   const renderDonutChart = (result: CalculationResult, isCurrent: boolean) => {
     const rent = result.inputs.customRent;
     const food = result.inputs.customFood * 30.5;
@@ -216,53 +230,112 @@ export default function App() {
       { name: "娱乐消遣", value: leisure, color: "#a855f7" },
     ];
 
-    let cumulativePercent = 0;
+    const activeCategories = categories.filter((c) => c.value > 0);
     const radius = 50;
     const circ = 2 * Math.PI * radius; // ~314.16
 
+    const cx = 210;
+    const cy = 110;
+
+    let cumulativePercent = 0;
+
     return (
-      <div className="chart-wrapper" style={{ flexDirection: "column", gap: "20px" }}>
-        <svg viewBox="0 0 120 120" className="pie-svg">
-          <circle cx="60" cy="60" r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="12" />
-          {categories.map((cat, idx) => {
+      <div className="chart-wrapper" style={{ flexDirection: "column", gap: "10px", width: "100%", alignItems: "center" }}>
+        <svg viewBox="0 0 420 220" style={{ width: "100%", height: "auto", maxWidth: "420px", overflow: "visible" }}>
+          {/* Inner Shadow / Base Ring */}
+          <circle cx={cx} cy={cy} r={radius} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="12" />
+
+          {activeCategories.map((cat, idx) => {
             const percent = cat.value / total;
             const strokeLength = percent * circ;
             const strokeOffset = circ - strokeLength;
-            const rotateAngle = (cumulativePercent * 360);
+            
+            // rotateAngle is where this slice starts in degrees
+            const rotateAngle = cumulativePercent * 360;
+            
+            // midpoint angle in degrees
+            const midAngleDegrees = rotateAngle + (percent * 360) / 2;
+            const midAngleRadians = (midAngleDegrees * Math.PI) / 180;
+
+            // increment cumulativePercent for the next slice
             cumulativePercent += percent;
 
-            if (percent === 0) return null;
+            // midpoint on the donut circle path
+            const x_mid = cx + radius * Math.cos(midAngleRadians);
+            const y_mid = cy + radius * Math.sin(midAngleRadians);
+
+            // elbow point for the callout line (radius 76)
+            const x_elbow = cx + 76 * Math.cos(midAngleRadians);
+            const y_elbow = cy + 76 * Math.sin(midAngleRadians);
+
+            const isLeft = x_elbow < cx;
+            const x_end = isLeft ? 55 : 365;
+            const textX = isLeft ? 45 : 375;
+            const textAnchor = isLeft ? "end" : "start";
+
+            const percentLabel = Math.round(percent * 100);
 
             return (
-              <circle
-                key={idx}
-                cx="60"
-                cy="60"
-                r={radius}
-                fill="none"
-                stroke={cat.color}
-                strokeWidth="12"
-                strokeDasharray={`${strokeLength} ${strokeOffset}`}
-                strokeDashoffset={0}
-                transform={`rotate(${rotateAngle} 60 60)`}
-                style={{ transition: "stroke-dasharray 0.5s ease" }}
-              />
+              <g key={idx}>
+                {/* Donut Slice */}
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill="none"
+                  stroke={cat.color}
+                  strokeWidth="12"
+                  strokeDasharray={`${strokeLength} ${strokeOffset}`}
+                  strokeDashoffset={0}
+                  transform={`rotate(${rotateAngle} ${cx} ${cy})`}
+                  style={{ transition: "stroke-dasharray 0.5s ease" }}
+                />
+
+                {/* Callout Line */}
+                <path
+                  d={`M ${x_mid} ${y_mid} L ${x_elbow} ${y_elbow} L ${x_end} ${y_elbow}`}
+                  fill="none"
+                  stroke={cat.color}
+                  strokeWidth="1.2"
+                  strokeOpacity="0.7"
+                  strokeDasharray="none"
+                  style={{ transition: "all 0.5s ease" }}
+                />
+
+                {/* Outer Indicator Dot on elbow */}
+                <circle
+                  cx={x_elbow}
+                  cy={y_elbow}
+                  r="2.5"
+                  fill={cat.color}
+                />
+
+                {/* Label Text */}
+                <text
+                  x={textX}
+                  y={y_elbow + 4}
+                  textAnchor={textAnchor}
+                  fill="var(--text-primary)"
+                  fontSize="11px"
+                  fontWeight="600"
+                  style={{ transition: "all 0.5s ease" }}
+                >
+                  {cat.name}
+                </text>
+                <text
+                  x={textX}
+                  y={y_elbow + 16}
+                  textAnchor={textAnchor}
+                  fill="var(--text-muted)"
+                  fontSize="10px"
+                  style={{ transition: "all 0.5s ease" }}
+                >
+                  {`${percentLabel}% (${formatCurrency(cat.value)})`}
+                </text>
+              </g>
             );
           })}
         </svg>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", width: "100%", fontSize: "11px" }}>
-          {categories.map((cat, idx) => {
-            const percent = Math.round((cat.value / total) * 100);
-            if (cat.value === 0) return null;
-            return (
-              <div key={idx} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: cat.color }}></span>
-                <span style={{ color: "var(--text-secondary)" }}>{cat.name}:</span>
-                <span style={{ fontWeight: 600 }}>{percent}%</span>
-              </div>
-            );
-          })}
-        </div>
       </div>
     );
   };
@@ -270,15 +343,15 @@ export default function App() {
   // (generateSparkline was removed to resolve compilation warnings)
 
   // SVG Gauge Calculations
-  const radius = 80;
-  const circ = Math.PI * radius; // 251.32 (Semi-circle circum)
+  const radius = 85;
+  const circ = Math.PI * radius; // 267.04 (Semi-circle circum)
   const diffWorth = targetResult.scores.totalWorth;
   const strokeDashoffset = circ - (diffWorth / 100) * circ;
   const worthStatus = getWorthStatus(diffWorth);
 
   // Compare 5 years savings calculation
-  const current5YearSavings = Array.from({ length: 5 }, (_, i) => currentResult.annualSavings * (i + 1));
-  const target5YearSavings = Array.from({ length: 5 }, (_, i) => targetResult.annualSavings * (i + 1));
+  const current5YearSavings = [0, ...Array.from({ length: 5 }, (_, i) => currentResult.annualSavings * (i + 1))];
+  const target5YearSavings = [0, ...Array.from({ length: 5 }, (_, i) => targetResult.annualSavings * (i + 1))];
   const maxSavings5Year = Math.max(...target5YearSavings, ...current5YearSavings, 1);
 
   // Simple copy share link
@@ -580,6 +653,140 @@ export default function App() {
                       />
                     </div>
                   </div>
+
+                  {/* Current City Advanced Settings */}
+                  <button 
+                    className="advanced-toggle"
+                    onClick={() => setShowCurrentAdvanced(!showCurrentAdvanced)}
+                  >
+                    <Sparkles size={14} />
+                    {showCurrentAdvanced ? "收起高级社保与扣除设置" : "展开高级社保与扣除设置"}
+                  </button>
+                  {showCurrentAdvanced && (
+                    <div className="advanced-panel">
+                      {/* pensionRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">养老保险个人比例</span>
+                          <span className="slider-value">{(currentInputs.pensionRate * 100).toFixed(1)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="0.15"
+                          step="0.005"
+                          className="custom-range"
+                          value={currentInputs.pensionRate}
+                          onChange={(e) => setCurrentInputs({ ...currentInputs, pensionRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* medicalRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">医疗保险个人比例</span>
+                          <span className="slider-value">{(currentInputs.medicalRate * 100).toFixed(1)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="0.06"
+                          step="0.005"
+                          className="custom-range"
+                          value={currentInputs.medicalRate}
+                          onChange={(e) => setCurrentInputs({ ...currentInputs, medicalRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* unemploymentRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">失业保险个人比例</span>
+                          <span className="slider-value">{(currentInputs.unemploymentRate * 100).toFixed(2)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="0.02"
+                          step="0.0005"
+                          className="custom-range"
+                          value={currentInputs.unemploymentRate}
+                          onChange={(e) => setCurrentInputs({ ...currentInputs, unemploymentRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* housingFundRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">公积金个人缴存比例</span>
+                          <span className="slider-value">{(currentInputs.housingFundRate * 100).toFixed(0)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="0.12"
+                          step="0.01"
+                          className="custom-range"
+                          value={currentInputs.housingFundRate}
+                          onChange={(e) => setCurrentInputs({ ...currentInputs, housingFundRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* specialTaxDeduction */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">个税专项附加扣除</span>
+                          <span className="slider-value">¥{currentInputs.specialTaxDeduction}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="8000"
+                          step="100"
+                          className="custom-range"
+                          value={currentInputs.specialTaxDeduction}
+                          onChange={(e) => setCurrentInputs({ ...currentInputs, specialTaxDeduction: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* slackTime */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">每日摸鱼/休息时长</span>
+                          <span className="slider-value">{currentInputs.slackTime} 小时</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="6"
+                          step="0.5"
+                          className="custom-range"
+                          value={currentInputs.slackTime}
+                          onChange={(e) => setCurrentInputs({ ...currentInputs, slackTime: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* careerGrowthRating */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">职业成长空间评分</span>
+                          <span className="slider-value">{currentInputs.careerGrowthRating} 星</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="5"
+                          step="1"
+                          className="custom-range"
+                          value={currentInputs.careerGrowthRating}
+                          onChange={(e) => setCurrentInputs({ ...currentInputs, careerGrowthRating: Number(e.target.value) })}
+                        />
+                        <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px", lineHeight: "1.4" }}>
+                          职业成长评分通过 1-5 星评分折算。计算公式为：成长评分 × 20 (当前折算得分: {currentInputs.careerGrowthRating * 20}/100)
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* TARGET CITY CARD */}
@@ -728,23 +935,162 @@ export default function App() {
                       />
                     </div>
                   </div>
+
+                  {/* Target City Advanced Settings */}
+                  <button 
+                    className="advanced-toggle"
+                    onClick={() => setShowTargetAdvanced(!showTargetAdvanced)}
+                  >
+                    <Sparkles size={14} />
+                    {showTargetAdvanced ? "收起高级社保与扣除设置" : "展开高级社保与扣除设置"}
+                  </button>
+                  {showTargetAdvanced && (
+                    <div className="advanced-panel">
+                      {/* pensionRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">养老保险个人比例</span>
+                          <span className="slider-value">{(targetInputs.pensionRate * 100).toFixed(1)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="0.15"
+                          step="0.005"
+                          className="custom-range"
+                          value={targetInputs.pensionRate}
+                          onChange={(e) => setTargetInputs({ ...targetInputs, pensionRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* medicalRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">医疗保险个人比例</span>
+                          <span className="slider-value">{(targetInputs.medicalRate * 100).toFixed(1)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="0.06"
+                          step="0.005"
+                          className="custom-range"
+                          value={targetInputs.medicalRate}
+                          onChange={(e) => setTargetInputs({ ...targetInputs, medicalRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* unemploymentRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">失业保险个人比例</span>
+                          <span className="slider-value">{(targetInputs.unemploymentRate * 100).toFixed(2)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="0.02"
+                          step="0.0005"
+                          className="custom-range"
+                          value={targetInputs.unemploymentRate}
+                          onChange={(e) => setTargetInputs({ ...targetInputs, unemploymentRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* housingFundRate */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">公积金个人缴存比例</span>
+                          <span className="slider-value">{(targetInputs.housingFundRate * 100).toFixed(0)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="0.12"
+                          step="0.01"
+                          className="custom-range"
+                          value={targetInputs.housingFundRate}
+                          onChange={(e) => setTargetInputs({ ...targetInputs, housingFundRate: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* specialTaxDeduction */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">个税专项附加扣除</span>
+                          <span className="slider-value">¥{targetInputs.specialTaxDeduction}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="8000"
+                          step="100"
+                          className="custom-range"
+                          value={targetInputs.specialTaxDeduction}
+                          onChange={(e) => setTargetInputs({ ...targetInputs, specialTaxDeduction: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* slackTime */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">每日摸鱼/休息时长</span>
+                          <span className="slider-value">{targetInputs.slackTime} 小时</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="6"
+                          step="0.5"
+                          className="custom-range"
+                          value={targetInputs.slackTime}
+                          onChange={(e) => setTargetInputs({ ...targetInputs, slackTime: Number(e.target.value) })}
+                        />
+                      </div>
+
+                      {/* careerGrowthRating */}
+                      <div className="slider-container">
+                        <div className="slider-label-row">
+                          <span className="slider-label">职业成长空间评分</span>
+                          <span className="slider-value">{targetInputs.careerGrowthRating} 星</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="5"
+                          step="1"
+                          className="custom-range"
+                          value={targetInputs.careerGrowthRating}
+                          onChange={(e) => setTargetInputs({ ...targetInputs, careerGrowthRating: Number(e.target.value) })}
+                        />
+                        <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px", lineHeight: "1.4" }}>
+                          职业成长评分通过 1-5 星评分折算。计算公式为：成长评分 × 20 (当前折算得分: {targetInputs.careerGrowthRating * 20}/100)
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              
               {/* Job Worth Score Gauge Card */}
               <div className="glass-card job-worth-card">
                 <span className="worth-card-title">
                   工作性价比指数 (Job Worth Score)
-                  <Info size={14} style={{ color: "var(--text-muted)", cursor: "pointer" }} />
+                  <div className="tooltip-container">
+                    <Info size={14} style={{ color: "var(--text-muted)", cursor: "pointer" }} />
+                    <div className="tooltip-text">
+                      工作性价比指数是综合考虑工作生活平衡 (25%)、税后到手收入 (25%)、存钱净空间 (20%)、职业成长空间 (15%) 和生活成本 (15%) 计算出的综合得分。
+                    </div>
+                  </div>
                 </span>
 
                 <div className="worth-gauge-wrapper">
-                  <svg className="gauge-svg" viewBox="0 0 200 120">
-                    <path className="gauge-bg" d="M 20,100 A 80,80 0 0,1 180,100" />
+                  <svg className="gauge-svg" viewBox="0 0 200 115">
+                    <path className="gauge-bg" d="M 15,100 A 85,85 0 0,1 185,100" />
                     <path
                       className="gauge-fill"
-                      d="M 20,100 A 80,80 0 0,1 180,100"
+                      d="M 15,100 A 85,85 0 0,1 185,100"
                       stroke="url(#worth-grad)"
+                      strokeDasharray={circ}
                       strokeDashoffset={strokeDashoffset}
                     />
                     <defs>
@@ -1001,26 +1347,61 @@ export default function App() {
                 <div className="chart-wrapper" style={{ flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
                   <div style={{ position: "relative", width: "100%", height: "180px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                     {/* Draw SVG lines */}
-                    <svg style={{ width: "100%", height: "100%", overflow: "visible" }}>
+                    <svg viewBox="0 0 500 180" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+                      <defs>
+                        <linearGradient id="current-area-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="var(--color-current)" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="var(--color-current)" stopOpacity="0" />
+                        </linearGradient>
+                        <linearGradient id="target-area-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="var(--color-target)" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="var(--color-target)" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+
                       {/* Gridlines */}
                       {[0.25, 0.5, 0.75, 1.0].map((ratio, i) => (
                         <line
                           key={i}
                           x1="0"
-                          y1={180 - ratio * 180}
-                          x2="100%"
-                          y2={180 - ratio * 180}
+                          y1={180 - ratio * 160}
+                          x2="500"
+                          y2={180 - ratio * 160}
                           stroke="rgba(255,255,255,0.03)"
                           strokeDasharray="4 4"
                         />
                       ))}
                       
+                      {/* Area 1 (Current) */}
+                      <path
+                        d={`M 0,180 ` + current5YearSavings.map((val, idx) => {
+                          const x = (idx / 5) * 500;
+                          const y = 180 - (val / maxSavings5Year) * 150;
+                          return `L ${x},${y}`;
+                        }).join(" ") + ` L 500,180 Z`}
+                        fill="url(#current-area-grad)"
+                        stroke="none"
+                        style={{ transition: "all 0.5s ease" }}
+                      />
+
+                      {/* Area 2 (Target) */}
+                      <path
+                        d={`M 0,180 ` + target5YearSavings.map((val, idx) => {
+                          const x = (idx / 5) * 500;
+                          const y = 180 - (val / maxSavings5Year) * 150;
+                          return `L ${x},${y}`;
+                        }).join(" ") + ` L 500,180 Z`}
+                        fill="url(#target-area-grad)"
+                        stroke="none"
+                        style={{ transition: "all 0.5s ease" }}
+                      />
+
                       {/* Line 1 (Current) */}
                       <path
                         d={`M 0,180 ` + current5YearSavings.map((val, idx) => {
-                          const x = ((idx + 1) / 5) * 100; // Percentage of width
-                          const y = 180 - (val / maxSavings5Year) * 160;
-                          return `L ${x}%,${y}`;
+                          const x = (idx / 5) * 500;
+                          const y = 180 - (val / maxSavings5Year) * 150;
+                          return `L ${x},${y}`;
                         }).join(" ")}
                         fill="none"
                         stroke="var(--color-current)"
@@ -1028,19 +1409,19 @@ export default function App() {
                         style={{ transition: "all 0.5s ease" }}
                       />
                       {current5YearSavings.map((val, idx) => {
-                        const x = `${((idx + 1) / 5) * 100}%`;
-                        const y = 180 - (val / maxSavings5Year) * 160;
+                        const x = (idx / 5) * 500;
+                        const y = 180 - (val / maxSavings5Year) * 150;
                         return (
                           <circle
                             key={idx}
                             cx={x}
                             cy={y}
-                            r="4"
+                            r="4.5"
                             fill="#08060c"
                             stroke="var(--color-current)"
                             strokeWidth="2"
                           >
-                            <title>{`第 ${idx + 1} 年: ${formatCurrency(val)}`}</title>
+                            <title>{idx === 0 ? `当前: ${formatCurrency(val)}` : `第 ${idx} 年: ${formatCurrency(val)}`}</title>
                           </circle>
                         );
                       })}
@@ -1048,9 +1429,9 @@ export default function App() {
                       {/* Line 2 (Target) */}
                       <path
                         d={`M 0,180 ` + target5YearSavings.map((val, idx) => {
-                          const x = ((idx + 1) / 5) * 100; // Percentage of width
-                          const y = 180 - (val / maxSavings5Year) * 160;
-                          return `L ${x}%,${y}`;
+                          const x = (idx / 5) * 500;
+                          const y = 180 - (val / maxSavings5Year) * 150;
+                          return `L ${x},${y}`;
                         }).join(" ")}
                         fill="none"
                         stroke="var(--color-target)"
@@ -1058,19 +1439,19 @@ export default function App() {
                         style={{ transition: "all 0.5s ease" }}
                       />
                       {target5YearSavings.map((val, idx) => {
-                        const x = `${((idx + 1) / 5) * 100}%`;
-                        const y = 180 - (val / maxSavings5Year) * 160;
+                        const x = (idx / 5) * 500;
+                        const y = 180 - (val / maxSavings5Year) * 150;
                         return (
                           <circle
                             key={idx}
                             cx={x}
                             cy={y}
-                            r="4"
+                            r="4.5"
                             fill="#08060c"
                             stroke="var(--color-target)"
                             strokeWidth="2"
                           >
-                            <title>{`第 ${idx + 1} 年: ${formatCurrency(val)}`}</title>
+                            <title>{idx === 0 ? `当前: ${formatCurrency(val)}` : `第 ${idx} 年: ${formatCurrency(val)}`}</title>
                           </circle>
                         );
                       })}
@@ -1094,9 +1475,27 @@ export default function App() {
               </div>
 
               {/* Expense breakdown Donut charts */}
-              <div className="glass-card chart-card">
-                <h3>{targetCity.name} 消费开支结构</h3>
-                {renderDonutChart(targetResult, false)}
+              <div className="glass-card chart-card" style={{ display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: "16px" }}>
+                  <h3 style={{ margin: 0 }}>消费开支结构</h3>
+                  <div className="donut-city-toggle">
+                    <button 
+                      className={`btn-toggle-small ${activeDonutCity === "current" ? "active" : ""}`}
+                      onClick={() => setActiveDonutCity("current")}
+                    >
+                      当前城市 ({currentCity.name})
+                    </button>
+                    <button 
+                      className={`btn-toggle-small ${activeDonutCity === "target" ? "active" : ""}`}
+                      onClick={() => setActiveDonutCity("target")}
+                    >
+                      目标城市 ({targetCity.name})
+                    </button>
+                  </div>
+                </div>
+                {activeDonutCity === "current" 
+                  ? renderDonutChart(currentResult, true) 
+                  : renderDonutChart(targetResult, false)}
               </div>
 
             </div>
@@ -1366,25 +1765,61 @@ export default function App() {
 
               {/* Large Line Chart */}
               <div style={{ width: "100%", height: "240px", position: "relative", marginBottom: "30px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "10px" }}>
-                <svg style={{ width: "100%", height: "100%", overflow: "visible" }}>
+                <svg viewBox="0 0 600 240" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+                  <defs>
+                    <linearGradient id="current-large-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="var(--color-current)" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="var(--color-current)" stopOpacity="0" />
+                    </linearGradient>
+                    <linearGradient id="target-large-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="var(--color-target)" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="var(--color-target)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Gridlines */}
                   {[0.25, 0.5, 0.75, 1.0].map((ratio, i) => (
                     <line
                       key={i}
                       x1="0"
-                      y1={240 - ratio * 240}
-                      x2="100%"
-                      y2={240 - ratio * 240}
+                      y1={240 - ratio * 200}
+                      x2="600"
+                      y2={240 - ratio * 200}
                       stroke="rgba(255,255,255,0.03)"
                       strokeDasharray="4 4"
                     />
                   ))}
                   
+                  {/* Area 1 (Current) */}
+                  <path
+                    d={`M 0,240 ` + current5YearSavings.map((val, idx) => {
+                      const x = (idx / 5) * 600;
+                      const y = 240 - (val / maxSavings5Year) * 200;
+                      return `L ${x},${y}`;
+                    }).join(" ") + ` L 600,240 Z`}
+                    fill="url(#current-large-grad)"
+                    stroke="none"
+                    style={{ transition: "all 0.5s ease" }}
+                  />
+
+                  {/* Area 2 (Target) */}
+                  <path
+                    d={`M 0,240 ` + target5YearSavings.map((val, idx) => {
+                      const x = (idx / 5) * 600;
+                      const y = 240 - (val / maxSavings5Year) * 200;
+                      return `L ${x},${y}`;
+                    }).join(" ") + ` L 600,240 Z`}
+                    fill="url(#target-large-grad)"
+                    stroke="none"
+                    style={{ transition: "all 0.5s ease" }}
+                  />
+
                   {/* Current Job Line */}
                   <path
                     d={`M 0,240 ` + current5YearSavings.map((val, idx) => {
-                      const x = ((idx + 1) / 5) * 100;
-                      const y = 240 - (val / maxSavings5Year) * 210;
-                      return `L ${x}%,${y}`;
+                      const x = (idx / 5) * 600;
+                      const y = 240 - (val / maxSavings5Year) * 200;
+                      return `L ${x},${y}`;
                     }).join(" ")}
                     fill="none"
                     stroke="var(--color-current)"
@@ -1392,11 +1827,11 @@ export default function App() {
                     style={{ transition: "all 0.5s ease" }}
                   />
                   {current5YearSavings.map((val, idx) => {
-                    const x = `${((idx + 1) / 5) * 100}%`;
-                    const y = 240 - (val / maxSavings5Year) * 210;
+                    const x = (idx / 5) * 600;
+                    const y = 240 - (val / maxSavings5Year) * 200;
                     return (
-                      <circle key={idx} cx={x} cy={y} r="5" fill="#08060c" stroke="var(--color-current)" strokeWidth="3.5">
-                        <title>{`第 ${idx + 1} 年: ${formatCurrency(val)}`}</title>
+                      <circle key={idx} cx={x} cy={y} r="5" fill="#08060c" stroke="var(--color-current)" strokeWidth="3">
+                        <title>{idx === 0 ? `当前: ${formatCurrency(val)}` : `第 ${idx} 年: ${formatCurrency(val)}`}</title>
                       </circle>
                     );
                   })}
@@ -1404,9 +1839,9 @@ export default function App() {
                   {/* Target Job Line */}
                   <path
                     d={`M 0,240 ` + target5YearSavings.map((val, idx) => {
-                      const x = ((idx + 1) / 5) * 100;
-                      const y = 240 - (val / maxSavings5Year) * 210;
-                      return `L ${x}%,${y}`;
+                      const x = (idx / 5) * 600;
+                      const y = 240 - (val / maxSavings5Year) * 200;
+                      return `L ${x},${y}`;
                     }).join(" ")}
                     fill="none"
                     stroke="var(--color-target)"
@@ -1414,11 +1849,11 @@ export default function App() {
                     style={{ transition: "all 0.5s ease" }}
                   />
                   {target5YearSavings.map((val, idx) => {
-                    const x = `${((idx + 1) / 5) * 100}%`;
-                    const y = 240 - (val / maxSavings5Year) * 210;
+                    const x = (idx / 5) * 600;
+                    const y = 240 - (val / maxSavings5Year) * 200;
                     return (
-                      <circle key={idx} cx={x} cy={y} r="5" fill="#08060c" stroke="var(--color-target)" strokeWidth="3.5">
-                        <title>{`第 ${idx + 1} 年: ${formatCurrency(val)}`}</title>
+                      <circle key={idx} cx={x} cy={y} r="5" fill="#08060c" stroke="var(--color-target)" strokeWidth="3">
+                        <title>{idx === 0 ? `当前: ${formatCurrency(val)}` : `第 ${idx} 年: ${formatCurrency(val)}`}</title>
                       </circle>
                     );
                   })}

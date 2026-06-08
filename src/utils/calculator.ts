@@ -16,6 +16,9 @@ export interface CalculatorInputs {
   slackTime: number;         // 每日摸鱼/休息时长 (小时)
   specialTaxDeduction: number; // 专项附加扣除 (如租房、赡养老人等，默认 1500)
   careerGrowthRating: number;  // 职业成长空间打分 (1-5 颗星，默认 3)
+  pensionRate: number;        // 自定义养老保险缴纳比例 (默认 0.08)
+  medicalRate: number;        // 自定义医疗保险缴纳比例 (默认 0.02)
+  unemploymentRate: number;   // 自定义失业保险缴纳比例 (默认 0.005)
 }
 
 export interface InsuranceBreakdown {
@@ -64,18 +67,23 @@ export interface CalculationResult {
 export function calculateInsurance(
   salary: number,
   city: CityData,
-  customFundRate: number
+  inputs: {
+    housingFundRate: number;
+    pensionRate: number;
+    medicalRate: number;
+    unemploymentRate: number;
+  }
 ): InsuranceBreakdown {
   // 确定社保缴费基数 (介于下限和上限之间)
   const secBase = Math.max(city.secFloor, Math.min(city.secCap, salary));
   
-  const pension = secBase * city.pensionRate;
-  const medical = secBase * city.medicalRate;
-  const unemployment = secBase * city.unemploymentRate;
+  const pension = secBase * inputs.pensionRate;
+  const medical = secBase * inputs.medicalRate;
+  const unemployment = secBase * inputs.unemploymentRate;
   
   // 公积金缴存基数通常为上年度月均工资，此处近似为当月工资，但同样受到社保上下限约束 (或城市公积金单独上下限，此处简化取社保上下限)
   const fundBase = Math.max(city.secFloor, Math.min(city.secCap, salary));
-  const housingFund = fundBase * customFundRate;
+  const housingFund = fundBase * inputs.housingFundRate;
   
   const totalEmployee = pension + medical + unemployment + housingFund;
   
@@ -84,7 +92,7 @@ export function calculateInsurance(
     fundBase * 0.16 + 
     fundBase * 0.07 + 
     fundBase * 0.007 + 
-    fundBase * customFundRate;
+    fundBase * inputs.housingFundRate;
 
   return {
     pension,
@@ -173,7 +181,12 @@ export function runCalculation(
   city: CityData
 ): CalculationResult {
   // 1. 五险一金
-  const insurance = calculateInsurance(inputs.salary, city, inputs.housingFundRate);
+  const insurance = calculateInsurance(inputs.salary, city, {
+    housingFundRate: inputs.housingFundRate,
+    pensionRate: inputs.pensionRate,
+    medicalRate: inputs.medicalRate,
+    unemploymentRate: inputs.unemploymentRate,
+  });
   
   // 2. 个税
   const individualTaxMonthly = calculateMonthlyTax(

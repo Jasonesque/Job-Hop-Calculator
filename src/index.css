@@ -507,9 +507,10 @@ body {
 
 .worth-gauge-wrapper {
   position: relative;
-  width: 180px;
-  height: 110px;
-  margin-top: 10px;
+  width: 280px;
+  height: 155px;
+  margin-top: 15px;
+  margin-bottom: 5px;
 }
 
 .gauge-svg {
@@ -528,13 +529,12 @@ body {
   fill: none;
   stroke-width: 12;
   stroke-linecap: round;
-  stroke-dasharray: 251.2; /* Pie diameter circum * 0.5 approx */
   transition: stroke-dashoffset 0.8s ease;
 }
 
 .gauge-text {
   position: absolute;
-  bottom: 0px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -543,13 +543,13 @@ body {
 }
 
 .gauge-score {
-  font-size: 36px;
+  font-size: 44px;
   font-weight: 800;
   line-height: 1;
 }
 
 .gauge-max {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -557,7 +557,7 @@ body {
 .gauge-status {
   font-size: 13px;
   font-weight: 700;
-  margin-top: 8px;
+  margin-top: 6px;
   background: linear-gradient(90deg, var(--color-current), var(--color-target));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -942,3 +942,124 @@ body {
     justify-content: flex-start;
   }
 }
+
+/* Tooltip & Advanced Settings styling */
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #130f24;
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  width: 220px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  text-align: left;
+}
+
+.tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #130f24 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 18px;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.advanced-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.advanced-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  animation: slideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.donut-city-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.btn-toggle-small {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-small:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.btn-toggle-small.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
