@@ -2180,7 +2180,8 @@ export default function App() {
             <form onSubmit={handleSaveSupabaseConfig}>
               <div className="modal-body">
                 <p style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                  如果你想在手机和电脑之间实时无缝同步配置，可以创建一个免费的 Supabase 项目，输入对应的 URL 和 API Key。
+                  如果你想在手机和电脑之间实时无缝同步配置，可以创建一个免费的 Supabase 项目，输入对应的 URL 和 API Key。<br/>
+                  <span style={{ color: "var(--color-primary)", opacity: 0.8 }}>提示：在 Supabase 新版界面中，Project URL 位于 API 设置中。Anon Public Key 可以直接使用 API 页面中的 <strong>Publishable key</strong> (以 sb_publishable_ 开头)。</span>
                 </p>
 
                 <div className="form-group">
@@ -2195,7 +2196,7 @@ export default function App() {
                 </div>
 
                 <div className="form-group">
-                  <label>Anon Public Key</label>
+                  <label>Anon Public Key (或 Publishable key)</label>
                   <input
                     type="text"
                     placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
