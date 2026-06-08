@@ -14,7 +14,12 @@ import {
   RefreshCw,
   X,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Copy,
+  QrCode,
+  Database,
+  Upload,
+  User
 } from "lucide-react";
 import { cities } from "./data/cities";
 
@@ -62,6 +67,82 @@ export default function App() {
 
   // Notification Banner State
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // User Profile States
+  const [userName, setUserName] = useState(localStorage.getItem("jobhop_username") || "职场探索者");
+  const [userAvatar, setUserAvatar] = useState(localStorage.getItem("jobhop_avatar") || "avatar1");
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Avatar styles helpers
+  const getAvatarGradient = (avatarKey: string) => {
+    switch (avatarKey) {
+      case "avatar1": return "linear-gradient(135deg, #00f0ff, #0072ff)";
+      case "avatar2": return "linear-gradient(135deg, #d946ef, #8b5cf6)";
+      case "avatar3": return "linear-gradient(135deg, #3b82f6, #ec4899)";
+      case "avatar4": return "linear-gradient(135deg, #f59e0b, #ef4444)";
+      case "avatar5": return "linear-gradient(135deg, #10b981, #059669)";
+      case "avatar6": return "linear-gradient(135deg, #fbbf24, #d97706)";
+      default: return "linear-gradient(135deg, #00f0ff, #0072ff)";
+    }
+  };
+
+  const getAvatarIcon = (avatarKey: string, size = 16) => {
+    switch (avatarKey) {
+      case "avatar1": return <Sparkles size={size} />;
+      case "avatar2": return <TrendingUp size={size} />;
+      case "avatar3": return <MapPin size={size} />;
+      case "avatar4": return <PiggyBank size={size} />;
+      case "avatar5": return <Activity size={size} />;
+      case "avatar6": return <LayoutDashboard size={size} />;
+      default: return <Sparkles size={size} />;
+    }
+  };
+
+  // URL Share Sync Import
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get("sb_url");
+    const keyParam = params.get("sb_key");
+    const uidParam = params.get("sb_uid");
+    
+    if (urlParam && keyParam) {
+      const config: SupabaseConfig = {
+        url: decodeURIComponent(urlParam),
+        anonKey: decodeURIComponent(keyParam),
+        userId: uidParam ? decodeURIComponent(uidParam) : "anonymous_user",
+      };
+      saveSupabaseConfig(config);
+      setSupabaseConfig(config);
+      setSbUrl(config.url);
+      setSbKey(config.anonKey);
+      setSbUserId(config.userId || "anonymous_user");
+      showToast("检测到云端同步链接，正在导入配置并联通...", "success");
+      
+      // Pull data from cloud
+      setSyncStatus("syncing");
+      syncFromCloud().then(res => {
+        if (res.success && res.data) {
+          setCurrentInputs(res.data.current);
+          setTargetInputs(res.data.target);
+          showToast("云端同步通道已建立！数据加载成功。", "success");
+          setSyncStatus("success");
+        } else {
+          // If no cloud data found, push local data to initialize
+          syncToCloud(currentInputs, targetInputs).then(pRes => {
+            if (pRes.success) {
+              showToast("云端同步通道建立！已初始化云端数据。", "success");
+              setSyncStatus("success");
+            } else {
+              showToast("同步连通测试失败：" + (pRes.error || "未知原因"), "error");
+              setSyncStatus("error");
+            }
+          });
+        }
+      });
+      // Clean query parameters to keep the URL clean
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // --- Calculations ---
   const currentCity = cities.find((c) => c.id === currentInputs.cityId) || cities[0];
@@ -383,6 +464,70 @@ export default function App() {
     showToast("成功导出对比数据 JSON 文件！", "success");
   };
 
+  // Profile data Backup & Restore handlers
+  const handleExportAll = () => {
+    const backup = {
+      username: userName,
+      avatar: userAvatar,
+      current: currentInputs,
+      target: targetInputs,
+      supabaseConfig: supabaseConfig
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `jobhop_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("备份已成功导出为 JSON 文件！", "success");
+  };
+
+  const handleImportAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        if (data.current && data.target) {
+          if (data.username) {
+            setUserName(data.username);
+            localStorage.setItem("jobhop_username", data.username);
+          }
+          if (data.avatar) {
+            setUserAvatar(data.avatar);
+            localStorage.setItem("jobhop_avatar", data.avatar);
+          }
+          setCurrentInputs(data.current);
+          setTargetInputs(data.target);
+          if (data.supabaseConfig) {
+            saveSupabaseConfig(data.supabaseConfig);
+            setSupabaseConfig(data.supabaseConfig);
+            setSbUrl(data.supabaseConfig.url || "");
+            setSbKey(data.supabaseConfig.anonKey || "");
+            setSbUserId(data.supabaseConfig.userId || "");
+          }
+          showToast("已成功载入备份配置与数据！", "success");
+        } else {
+          showToast("无效的备份文件结构！", "error");
+        }
+      } catch (error) {
+        showToast("解析备份文件失败，请检查文件格式！", "error");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearAll = () => {
+    if (window.confirm("确定要清除全部本地数据与云同步配置吗？您的本地数据将恢复至默认，此操作不可撤销。")) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="app-container">
       {/* Toast Notification */}
@@ -459,22 +604,21 @@ export default function App() {
         </div>
 
         {/* User profile section */}
-        <div className="sidebar-user">
-          <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-            alt="User Avatar"
-            className="user-avatar"
-          />
+        <div className="sidebar-user" onClick={() => setIsProfileModalOpen(true)} title="点击打开个人中心与数据管理">
+          <div className="user-avatar-gradient" style={{ background: getAvatarGradient(userAvatar) }}>
+            {getAvatarIcon(userAvatar, 18)}
+          </div>
           <div className="user-info">
-            <span className="user-name">职场探索者</span>
+            <span className="user-name">{userName}</span>
             <span className="user-status" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
               <span style={{
                 width: "6px",
                 height: "6px",
                 borderRadius: "50%",
-                background: syncStatus === "success" ? "var(--color-success)" : syncStatus === "syncing" ? "var(--color-warning)" : "var(--text-muted)"
+                background: syncStatus === "success" ? "var(--color-success)" : syncStatus === "syncing" ? "var(--color-warning)" : "var(--text-muted)",
+                boxShadow: syncStatus === "success" ? "0 0 8px var(--color-success)" : "none"
               }}></span>
-              {supabaseConfig ? "云同步在线" : "本地模式"}
+              {supabaseConfig ? "云端同步在线" : "本地模式"}
             </span>
           </div>
         </div>
@@ -2025,8 +2169,8 @@ export default function App() {
 
       {/* 5. Supabase Sync Modal */}
       {isSyncModalOpen && (
-        <div className="modal-overlay">
-          <div className="glass-card modal-content">
+        <div className="modal-overlay" onClick={() => setIsSyncModalOpen(false)}>
+          <div className="glass-card modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>多端同步设置 (Supabase Cloud Sync)</h2>
               <button className="modal-close" onClick={() => setIsSyncModalOpen(false)}>
@@ -2084,6 +2228,44 @@ export default function App() {
 );`}
                   </pre>
                 </div>
+
+                {supabaseConfig && (
+                  <div className="qr-sync-container" style={{ marginTop: "16px" }}>
+                    <div className="qr-sync-image-wrapper">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&color=ffffff&bgcolor=130f24&data=${encodeURIComponent(
+                          `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.anonKey)}&sb_uid=${encodeURIComponent(supabaseConfig.userId || "anonymous_user")}`
+                        )}`}
+                        alt="Sync QR Code"
+                      />
+                    </div>
+                    <div className="qr-sync-info">
+                      <h3 style={{ fontSize: "13px" }}>手机极速扫码配对</h3>
+                      <p style={{ fontSize: "11px", margin: 0 }}>使用手机扫描左侧二维码，即可瞬间将当前的云端同步凭证与数据载入手机端，实现双端互联！</p>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: "10px",
+                          width: "fit-content",
+                          marginTop: "4px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px"
+                        }}
+                        onClick={() => {
+                          const shareSyncUrl = `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.anonKey)}&sb_uid=${encodeURIComponent(supabaseConfig.userId || "anonymous_user")}`;
+                          navigator.clipboard.writeText(shareSyncUrl);
+                          showToast("同步配对链接已复制！您可以发送给手机进行导入。", "success");
+                        }}
+                      >
+                        <Copy size={10} />
+                        复制同步链接
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 {supabaseConfig && (
@@ -2099,6 +2281,199 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Profile & Data Center Modal */}
+      {isProfileModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsProfileModalOpen(false)}>
+          <div className="glass-card modal-content" style={{ maxWidth: "600px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <User size={20} style={{ color: "var(--color-current)" }} />
+                <h2>个人中心与数据管理</h2>
+              </div>
+              <button className="modal-close" onClick={() => setIsProfileModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="profile-modal-grid">
+                {/* Left side: Profile Info */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div className="form-group">
+                    <label>用户昵称</label>
+                    <input
+                      type="text"
+                      maxLength={16}
+                      placeholder="职场探索者"
+                      value={userName}
+                      onChange={(e) => {
+                        const val = e.target.value || "职场探索者";
+                        setUserName(val);
+                        localStorage.setItem("jobhop_username", val);
+                      }}
+                    />
+                  </div>
+
+                  <div className="avatar-selection-container">
+                    <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>选择霓虹头像</label>
+                    <div className="avatar-selection-grid">
+                      {["avatar1", "avatar2", "avatar3", "avatar4", "avatar5", "avatar6"].map((avKey) => (
+                        <div
+                          key={avKey}
+                          className={`avatar-selection-item ${userAvatar === avKey ? "selected" : ""}`}
+                          style={{ background: getAvatarGradient(avKey) }}
+                          onClick={() => {
+                            setUserAvatar(avKey);
+                            localStorage.setItem("jobhop_avatar", avKey);
+                          }}
+                        >
+                          {getAvatarIcon(avKey, 16)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side: Data management */}
+                <div className="backup-actions-container">
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>本地数据管理</label>
+                  
+                  <div className="backup-btn-group">
+                    <button className="btn-secondary" onClick={handleExportAll} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px" }}>
+                      <Download size={14} />
+                      备份导出
+                    </button>
+                    
+                    <label
+                      htmlFor="import-all-file"
+                      className="btn-secondary"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        margin: 0,
+                        padding: "10px 14px",
+                        textAlign: "center"
+                      }}
+                    >
+                      <Upload size={14} />
+                      恢复导入
+                    </label>
+                    <input
+                      id="import-all-file"
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportAll}
+                      style={{ display: "none" }}
+                    />
+                  </div>
+
+                  <button
+                    className="btn-secondary"
+                    onClick={handleClearAll}
+                    style={{
+                      color: "#ef4444",
+                      borderColor: "rgba(239, 68, 68, 0.2)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      fontSize: "12px",
+                      width: "100%"
+                    }}
+                  >
+                    <Database size={14} />
+                    清除本地全部数据
+                  </button>
+
+                  <div className={`sync-status-badge ${supabaseConfig ? "active" : ""}`} style={{ marginTop: "4px" }}>
+                    <span style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: supabaseConfig ? "var(--color-success)" : "var(--text-muted)",
+                      boxShadow: supabaseConfig ? "0 0 8px var(--color-success)" : "none"
+                    }}></span>
+                    云同步：{supabaseConfig ? "已联通 (在线)" : "未激活 (本地)"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom: Supabase QR Code Mobile Sync */}
+              {supabaseConfig ? (
+                <div className="qr-sync-container">
+                  <div className="qr-sync-image-wrapper">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&color=ffffff&bgcolor=130f24&data=${encodeURIComponent(
+                        `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.anonKey)}&sb_uid=${encodeURIComponent(supabaseConfig.userId || "anonymous_user")}`
+                      )}`}
+                      alt="Sync QR Code"
+                    />
+                  </div>
+                  <div className="qr-sync-info">
+                    <h3>手机极速扫码同步</h3>
+                    <p>通过手机扫码，可以瞬间将云端同步凭证与数据载入手机端使用：</p>
+                    <ol>
+                      <li>使用手机相机、微信或浏览器扫描左侧二维码。</li>
+                      <li>手机端将自动导入该 Supabase 云同步通道及相关数据。</li>
+                      <li>完成首次拉取后即可实现双端数据自动联通！</li>
+                    </ol>
+                    <button
+                      className="btn-secondary"
+                      style={{
+                        padding: "6px 12px",
+                        fontSize: "11px",
+                        width: "fit-content",
+                        marginTop: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                      onClick={() => {
+                        const shareSyncUrl = `${window.location.origin}${window.location.pathname}?sb_url=${encodeURIComponent(supabaseConfig.url)}&sb_key=${encodeURIComponent(supabaseConfig.anonKey)}&sb_uid=${encodeURIComponent(supabaseConfig.userId || "anonymous_user")}`;
+                        navigator.clipboard.writeText(shareSyncUrl);
+                        showToast("同步配对链接已复制！您可以发送给手机进行导入。", "success");
+                      }}
+                    >
+                      <Copy size={12} />
+                      复制同步链接
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    marginTop: "16px",
+                    background: "rgba(255, 255, 255, 0.02)",
+                    border: "1px dashed rgba(255, 255, 255, 0.1)",
+                    borderRadius: "10px",
+                    padding: "16px",
+                    textAlign: "center",
+                    color: "var(--text-secondary)",
+                    fontSize: "12px",
+                    lineHeight: "1.6"
+                  }}
+                >
+                  <QrCode size={24} style={{ color: "var(--text-muted)", marginBottom: "8px" }} />
+                  <p>
+                    未检测到云端同步配置。如果希望生成双端扫码同步的二维码，请先在左侧菜单点击 <strong>云端同步 (Cloud Sync)</strong> 并配置保存您的 Supabase 项目。
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setIsProfileModalOpen(false)}>
+                关闭
+              </button>
+            </div>
           </div>
         </div>
       )}
