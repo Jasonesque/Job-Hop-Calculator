@@ -88,6 +88,7 @@ export const cities: CityData[] = [
     defaultDailyFood: 80,
     defaultDailyTransport: 20,
     defaultMonthlyUtilities: 450,
+    defaultMonthlyLeisure: 1800,
   },
   {
     id: "beijing",
