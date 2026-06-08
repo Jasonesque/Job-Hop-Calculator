@@ -33,13 +33,21 @@
 
 body {
   background: var(--bg-main);
-  background-image: var(--bg-gradient);
-  background-attachment: fixed;
-  background-size: cover;
-  background-repeat: no-repeat;
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: var(--bg-gradient);
+  z-index: -1;
+  pointer-events: none;
 }
 
 /* Scrollbar styling */
