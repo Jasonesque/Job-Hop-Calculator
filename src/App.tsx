@@ -2185,7 +2185,7 @@ export default function App() {
                 </p>
 
                 <div className="form-group">
-                  <label>Supabase 项目 URL</label>
+                  <label>Supabase 项目 URL (注意：请删去结尾的 /rest/v1/)</label>
                   <input
                     type="url"
                     placeholder="https://your-project-id.supabase.co"
