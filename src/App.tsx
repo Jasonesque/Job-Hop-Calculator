@@ -302,12 +302,22 @@ export default function App() {
                   style={{ transition: "all 0.5s ease" }}
                 />
 
+                {/* Inner Indicator Dot on donut edge */}
+                <circle
+                  cx={x_mid}
+                  cy={y_mid}
+                  r="2"
+                  fill={cat.color}
+                  style={{ transition: "all 0.5s ease" }}
+                />
+
                 {/* Outer Indicator Dot on elbow */}
                 <circle
                   cx={x_elbow}
                   cy={y_elbow}
                   r="2.5"
                   fill={cat.color}
+                  style={{ transition: "all 0.5s ease" }}
                 />
 
                 {/* Label Text */}
@@ -623,6 +633,54 @@ export default function App() {
 
                     <div className="slider-container">
                       <div className="slider-label-row">
+                        <span className="slider-label">通勤交通开销 (Daily Transport)</span>
+                        <span className="slider-value">{formatCurrency(currentInputs.customTransport)} / 天</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        step="5"
+                        className="custom-range"
+                        value={currentInputs.customTransport}
+                        onChange={(e) => setCurrentInputs({ ...currentInputs, customTransport: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    <div className="slider-container">
+                      <div className="slider-label-row">
+                        <span className="slider-label">水电宽带月杂费 (Utilities)</span>
+                        <span className="slider-value">{formatCurrency(currentInputs.customUtilities)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="3000"
+                        step="50"
+                        className="custom-range"
+                        value={currentInputs.customUtilities}
+                        onChange={(e) => setCurrentInputs({ ...currentInputs, customUtilities: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    <div className="slider-container">
+                      <div className="slider-label-row">
+                        <span className="slider-label">社交娱乐消遣 (Monthly Leisure)</span>
+                        <span className="slider-value">{formatCurrency(currentInputs.customLeisure)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10000"
+                        step="100"
+                        className="custom-range"
+                        value={currentInputs.customLeisure}
+                        onChange={(e) => setCurrentInputs({ ...currentInputs, customLeisure: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    <div className="slider-container">
+                      <div className="slider-label-row">
                         <span className="slider-label">每日工作时长 (Work Hours)</span>
                         <span className="slider-value">{currentInputs.workHours} 小时</span>
                       </div>
@@ -900,6 +958,54 @@ export default function App() {
                         className="custom-range"
                         value={targetInputs.customFood}
                         onChange={(e) => setTargetInputs({ ...targetInputs, customFood: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    <div className="slider-container">
+                      <div className="slider-label-row">
+                        <span className="slider-label">通勤交通开销 (Daily Transport)</span>
+                        <span className="slider-value">{formatCurrency(targetInputs.customTransport)} / 天</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        step="5"
+                        className="custom-range"
+                        value={targetInputs.customTransport}
+                        onChange={(e) => setTargetInputs({ ...targetInputs, customTransport: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    <div className="slider-container">
+                      <div className="slider-label-row">
+                        <span className="slider-label">水电宽带月杂费 (Utilities)</span>
+                        <span className="slider-value">{formatCurrency(targetInputs.customUtilities)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="3000"
+                        step="50"
+                        className="custom-range"
+                        value={targetInputs.customUtilities}
+                        onChange={(e) => setTargetInputs({ ...targetInputs, customUtilities: Number(e.target.value) })}
+                      />
+                    </div>
+
+                    <div className="slider-container">
+                      <div className="slider-label-row">
+                        <span className="slider-label">社交娱乐消遣 (Monthly Leisure)</span>
+                        <span className="slider-value">{formatCurrency(targetInputs.customLeisure)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10000"
+                        step="100"
+                        className="custom-range"
+                        value={targetInputs.customLeisure}
+                        onChange={(e) => setTargetInputs({ ...targetInputs, customLeisure: Number(e.target.value) })}
                       />
                     </div>
 
@@ -1535,7 +1641,7 @@ export default function App() {
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
                 {/* Current City Column */}
-                <div style={{ borderRight: "1px solid var(--card-border)", paddingRight: "30px" }}>
+                <div className="current" style={{ borderRight: "1px solid var(--card-border)", paddingRight: "30px" }}>
                   <h3 style={{ color: "var(--color-current)", marginBottom: "16px", display: "flex", justifyContent: "space-between" }}>
                     <span>{currentCity.name} 月开支</span>
                     <span>{formatCurrency(currentResult.monthlyExpenses)}/月</span>
@@ -1600,7 +1706,7 @@ export default function App() {
                 </div>
 
                 {/* Target City Column */}
-                <div>
+                <div className="target">
                   <h3 style={{ color: "var(--color-target)", marginBottom: "16px", display: "flex", justifyContent: "space-between" }}>
                     <span>{targetCity.name} 月开支</span>
                     <span>{formatCurrency(targetResult.monthlyExpenses)}/月</span>
@@ -1704,13 +1810,13 @@ export default function App() {
                 <tbody>
                   {[
                     { name: "税前基本月薪", curr: currentInputs.salary, targ: targetInputs.salary, type: "normal" },
-                    { name: "个人养老保险 (8%)", curr: -currentResult.pension, targ: -targetResult.pension, type: "deduct" },
-                    { name: "个人医疗保险 (2%)", curr: -currentResult.medical, targ: -targetResult.medical, type: "deduct" },
-                    { name: "个人失业保险", curr: -currentResult.unemployment, targ: -targetResult.unemployment, type: "deduct" },
-                    { name: "个人住房公积金", curr: -currentResult.housingFundEmployee, targ: -targetResult.housingFundEmployee, type: "deduct" },
+                    { name: `个人养老保险 (${(currentInputs.pensionRate * 100).toFixed(1)}% vs ${(targetInputs.pensionRate * 100).toFixed(1)}%)`, curr: -currentResult.pension, targ: -targetResult.pension, type: "deduct" },
+                    { name: `个人医疗保险 (${(currentInputs.medicalRate * 100).toFixed(1)}% vs ${(targetInputs.medicalRate * 100).toFixed(1)}%)`, curr: -currentResult.medical, targ: -targetResult.medical, type: "deduct" },
+                    { name: `个人失业保险 (${(currentInputs.unemploymentRate * 100).toFixed(2)}% vs ${(targetInputs.unemploymentRate * 100).toFixed(2)}%)`, curr: -currentResult.unemployment, targ: -targetResult.unemployment, type: "deduct" },
+                    { name: `个人住房公积金 (${(currentInputs.housingFundRate * 100).toFixed(0)}% vs ${(targetInputs.housingFundRate * 100).toFixed(0)}%)`, curr: -currentResult.housingFundEmployee, targ: -targetResult.housingFundEmployee, type: "deduct" },
                     { name: "月个人所得税", curr: -currentResult.individualTaxMonthly, targ: -targetResult.individualTaxMonthly, type: "deduct" },
                     { name: "税后到手月薪", curr: currentResult.netMonthly, targ: targetResult.netMonthly, type: "highlight-bold" },
-                    { name: "月公司配缴公积金 (直接存入账户)", curr: currentResult.housingFundEmployer, targ: targetResult.housingFundEmployer, type: "add" },
+                    { name: `月公司配缴公积金 (${(currentInputs.housingFundRate * 100).toFixed(0)}% vs ${(targetInputs.housingFundRate * 100).toFixed(0)}%)`, curr: currentResult.housingFundEmployer, targ: targetResult.housingFundEmployer, type: "add" },
                     { name: "广义月度收益 (到手月薪 + 双方公积金)", curr: currentResult.netMonthly + currentResult.housingFundEmployee * 2, targ: targetResult.netMonthly + targetResult.housingFundEmployee * 2, type: "bold" },
                     { name: "年终奖税前", curr: currentInputs.bonus, targ: targetInputs.bonus, type: "normal" },
                     { name: "年终奖个税 (单独计税)", curr: -calculateBonusTax(currentInputs.bonus), targ: -calculateBonusTax(targetInputs.bonus), type: "deduct" },

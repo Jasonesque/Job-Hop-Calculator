@@ -472,17 +472,38 @@ body {
   transition: transform 0.1s ease;
 }
 
-.city-card.current .custom-range::-webkit-slider-thumb {
+.current .custom-range::-webkit-slider-thumb {
   background: var(--color-current);
   box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
 }
 
-.city-card.target .custom-range::-webkit-slider-thumb {
+.target .custom-range::-webkit-slider-thumb {
   background: var(--color-target);
   box-shadow: 0 0 10px rgba(217, 70, 239, 0.5);
 }
 
-.custom-range::-webkit-slider-thumb:hover {
+/* Firefox range thumb */
+.custom-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s ease;
+}
+
+.current .custom-range::-moz-range-thumb {
+  background: var(--color-current);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.target .custom-range::-moz-range-thumb {
+  background: var(--color-target);
+  box-shadow: 0 0 10px rgba(217, 70, 239, 0.5);
+}
+
+.custom-range::-webkit-slider-thumb:hover,
+.custom-range::-moz-range-thumb:hover {
   transform: scale(1.2);
 }
 
