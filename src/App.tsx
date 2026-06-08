@@ -718,7 +718,7 @@ export default function App() {
                       </div>
                       <input
                         type="range"
-                        min="3000"
+                        min="0"
                         max="100000"
                         step="500"
                         className="custom-range"
@@ -766,7 +766,7 @@ export default function App() {
                       </div>
                       <input
                         type="range"
-                        min="10"
+                        min="0"
                         max="300"
                         step="5"
                         className="custom-range"
@@ -1048,7 +1048,7 @@ export default function App() {
                       </div>
                       <input
                         type="range"
-                        min="3000"
+                        min="0"
                         max="100000"
                         step="500"
                         className="custom-range"
@@ -1096,7 +1096,7 @@ export default function App() {
                       </div>
                       <input
                         type="range"
-                        min="10"
+                        min="0"
                         max="300"
                         step="5"
                         className="custom-range"
@@ -1808,7 +1808,7 @@ export default function App() {
                         <span className="slider-value">{formatCurrency(currentInputs.customFood)} / 天 (约 {formatCurrency(currentInputs.customFood * 30.5)}/月)</span>
                       </div>
                       <input
-                        type="range" min="10" max="300" step="5" className="custom-range"
+                        type="range" min="0" max="300" step="5" className="custom-range"
                         value={currentInputs.customFood}
                         onChange={(e) => setCurrentInputs({ ...currentInputs, customFood: Number(e.target.value) })}
                       />
@@ -1873,7 +1873,7 @@ export default function App() {
                         <span className="slider-value">{formatCurrency(targetInputs.customFood)} / 天 (约 {formatCurrency(targetInputs.customFood * 30.5)}/月)</span>
                       </div>
                       <input
-                        type="range" min="10" max="300" step="5" className="custom-range"
+                        type="range" min="0" max="300" step="5" className="custom-range"
                         value={targetInputs.customFood}
                         onChange={(e) => setTargetInputs({ ...targetInputs, customFood: Number(e.target.value) })}
                       />
