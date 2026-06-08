@@ -34,6 +34,9 @@
 body {
   background: var(--bg-main);
   background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
